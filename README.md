@@ -139,6 +139,14 @@ See [`.env.example`](.env.example) for the credential format.
 network, no account): store headers, safe basket changes and undo, tool names,
 and that nothing but MCP protocol reaches stdout.
 
+## Preferences
+
+When it connects, the server tells the assistant to read a DocMost page
+called **Tesco Shopping Preferences** (staples, brands, aliases, things to
+avoid, household size) before planning a shop, if DocMost tools are
+available, and to preview recipe additions with `dryRun` before applying
+them. The same rules are in the skill below.
+
 ## Shopping Skill
 
 The [`skills/SKILL.md`](skills/SKILL.md) file contains an optimised execution guide that teaches AI assistants how to efficiently handle a full weekly grocery shop — from searching to basket management to delivery slot booking. You can use it as a system prompt or reference for your own workflows.

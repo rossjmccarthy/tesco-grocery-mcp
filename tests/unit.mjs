@@ -215,6 +215,21 @@ const updates = (fake) => fake.calls.filter((c) => c.operationName === "UpdateBa
   });
 }
 
+// ─── Server instructions ─────────────────────────────────────────────────────
+
+{
+  const srv = await mcpServer({ TESCO_API_URL: "http://127.0.0.1:9/", TESCO_REGION: "IE" });
+  const init = await srv.initializeResult();
+  srv.close();
+  await check("instructions name the store, the DocMost preferences page and the safety rules", () => {
+    const text = init.instructions ?? "";
+    assert.match(text, /\(IE, prices in EUR\)/);
+    assert.match(text, /"Tesco Shopping Preferences"/);
+    assert.match(text, /dryRun: true/);
+    assert.match(text, /There is no checkout/);
+  });
+}
+
 // ─── Tool names and stdout ───────────────────────────────────────────────────
 
 {

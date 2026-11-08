@@ -22,7 +22,7 @@ Every grocery shopping task follows this dependency graph. Phases are sequential
 ### Phase 0 — Setup
 
 1. view SKILL.md (this file)
-2. bash: cat preferred_items.md (check if exists)
+2. Read the DocMost page "Tesco Shopping Preferences" (search DocMost by title), if DocMost tools are available
 3. tool_search("tesco grocery...")
 
 ### Phase 1 — Context gathering
@@ -42,7 +42,7 @@ delivery is booked.
 **Decision gate after Phase 1:**
 - Build a lookup map: `{item_keyword → favourite_product_id}` for any staples 
   matched in favourites
-- Build an alias map from preferred_items.md (e.g. "sourdough" → specific product name)
+- Build an alias map from the preferences page (e.g. "sourdough" → specific product name)
 - Note any favourites that are `isForSale: false` — search for these in Phase 2 
   using `search_products` (not `get_substitutions`; substitutions run in Phase 4)
 - Note any items NOT found in favourites — these need product searches
@@ -71,7 +71,7 @@ you can map results back to items. Per-query failures come back as
 `{ ok: false, error }` entries — the rest still succeed.
 
 **Search query guidelines:**
-- Use the product alias from preferred_items.md if one exists
+- Use the product alias from the preferences page if one exists
 - Keep queries specific: include brand + size + key attribute (e.g. "5% fat")
 - For branded items (toilet paper, coffee, cleaning products), ALWAYS lead 
   with the brand name (e.g. "Andrex quilted toilet roll 3 ply") — generic 
@@ -91,7 +91,7 @@ you can map results back to items. Per-query failures come back as
   2. Clubcard deals (user has Clubcard — always factor in discounted price)
   3. Price per unit (compare £/kg, £/litre, £/each)
   4. Ratings and reviews
-  5. Brand preference from preferred_items.md
+  5. Brand preference from the preferences page
   6. Availability (isForSale must be true)
 - Flag quality/price trade-offs for user review (e.g. standard vs Finest)
 - If any search returned poor results (e.g. marketplace bulk items), retry 
@@ -105,8 +105,13 @@ you can map results back to items. Per-query failures come back as
 One `add_to_basket` call with ALL selected items:
 
 ```
-add_to_basket(items: [{id, quantity}, {id, quantity}, ...])
+add_to_basket(items: [{id, quantity}, {id, quantity}, ...], dryRun: true)   # preview, show it
+add_to_basket(items: [{id, quantity}, {id, quantity}, ...])                 # then apply
 ```
+
+`mode: "add"` (the default) adds to what is already in the basket, so items
+from several recipes combine instead of overwriting each other. If the
+result is wrong, `undo_last_basket_change` puts the previous quantities back.
 
 Include every item in one call. Never add items one at a time.
 
@@ -122,7 +127,7 @@ Single call: `get_basket` — verify all items added correctly.
 Check every item in the basket response:
 - `status: "AvailableForSale"` → good
 - `status` is anything else, or item is missing → needs substitution
-- Quantity mismatch → correct with add_to_basket (quantity overwrite)
+- Quantity mismatch → correct with add_to_basket(mode: "set") after telling the user
 
 **Phase 4b — Substitution search (only if needed):**
 
@@ -199,7 +204,7 @@ Column behaviour:
   - `Favourite` (gray) — item matched from favourites
   - `Clubcard price` (teal #0F6E56) — Clubcard deal applied
   - `Sub for unavailable [X]` (warning color) — substitution made
-  - `Per alias` (gray) — resolved from preferred_items alias
+  - `Per alias` (gray) — resolved from a preferences-page alias
   - `[quantity note]` (gray) — e.g. "= 1kg total" for split-pack items
   - Flagged with `⚖️` if there's a quality/price trade-off (see Section 3)
 
@@ -315,7 +320,7 @@ Follow the widget with a SHORT prose summary (3-5 bullet points max) covering:
 - Key substitutions made and why
 - The best deal/Clubcard insight
 - Any items that need user decision
-- Offer to save/update preferred_items.md
+- Offer to update the DocMost page "Tesco Shopping Preferences" with brands and products chosen this session
 
 Do NOT repeat the full item list in prose — the widget already shows everything. 
 The prose should add context the widget can't (e.g. "No 1kg lean mince exists, 
@@ -363,34 +368,22 @@ verification results.
 
 ---
 
-## Preferred items file
+## Preferences page
 
-Location: `/mnt/user-data/uploads/preferred_items.md` or as specified by user.
+Preferences live on the DocMost page **Tesco Shopping Preferences** (Personal
+space), not in a local file: household size, staples, brand preferences,
+aliases, things to avoid, budget and delivery preferences.
 
-### Format
-```markdown
-# Preferred Items
-
-## Aliases
-- alias - product name - product id (if known)
-
-## Brand preferences
- - product name
-
-## Staple items (add weekly unless excluded)
-- 1 × Tesco Whole Milk 2L
-- 1 × Arla Lactofree Whole Milk 2L
-- 2 × Tesco Perfectly Ripe Mango
-- 1 × Tesco Pink Lady Apples 5 Pack
-- ... etc
-```
-
-### Using the file
-- Check aliases BEFORE searching — search using the resolved product name
-- If a product ID is stored, try adding directly via `add_to_basket` without 
-  searching (but verify it's still available in the Phase 4 check)
-- After user confirms the basket, offer to create/update this file with the 
-  brands and products they chose this session
+### Using the page
+- Read it in Phase 0, before any search.
+- Check aliases BEFORE searching — search using the resolved product name.
+- Add staples unless the user excludes them this week.
+- Never buy anything listed under Avoid; flag any product that may conflict
+  with an allergy or intolerance listed there.
+- If a product ID is known, try adding it directly via `add_to_basket`
+  without searching (but verify it in the Phase 4 check).
+- After the user confirms the basket, offer to update the page with the
+  brands and products they chose (append to it; never overwrite the page).
 
 ---
 

@@ -85,8 +85,9 @@ export async function mcpServer(env = {}) {
       pending.set(id, resolve);
       proc.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
     });
+  let initResult;
   const ready = (async () => {
-    await send("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "unit", version: "1" } });
+    initResult = (await send("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "unit", version: "1" } })).result;
     proc.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n");
   })();
   return {
@@ -94,7 +95,7 @@ export async function mcpServer(env = {}) {
     strayStdout,
     async initializeResult() {
       await ready;
-      return (await send("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "unit", version: "1" } })).result;
+      return initResult;
     },
     async listTools() {
       await ready;
