@@ -20,9 +20,42 @@ function getEnvPath(): string {
 
 const ENV_PATH = getEnvPath();
 
-const ENDPOINT = "https://xapi.tesco.com/";
+// TESCO_API_URL exists so tests can point the server at a fake Tesco.
+const ENDPOINT = process.env.TESCO_API_URL || "https://xapi.tesco.com/";
 // Tesco's public API key — not a secret; required for all xapi.tesco.com requests
 const API_KEY = "TvOSZJHlEk0pjniDGQFAc9Q59WGAR4dA";
+
+// ─── Store (region) ──────────────────────────────────────────────────────────
+
+/**
+ * Which Tesco storefront to talk to. The same gateway serves both, selected
+ * by the region/language headers and the site origin. The IE values are not
+ * yet confirmed against tesco.ie traffic; TESCO_LANGUAGE overrides the
+ * language if Tesco Ireland turns out to use a different one.
+ */
+interface Store {
+  region: "UK" | "IE";
+  origin: string;
+  language: string;
+  currency: "GBP" | "EUR";
+}
+
+const STORES: Record<Store["region"], Store> = {
+  UK: { region: "UK", origin: "https://www.tesco.com", language: "en-GB", currency: "GBP" },
+  IE: { region: "IE", origin: "https://www.tesco.ie", language: "en-IE", currency: "EUR" },
+};
+
+function resolveStore(): Store {
+  const wanted = (process.env.TESCO_REGION ?? "UK").toUpperCase();
+  const store = STORES[wanted as Store["region"]];
+  if (!store) {
+    console.error(`[tesco] Unknown TESCO_REGION "${wanted}"; use UK or IE. Falling back to UK.`);
+    return STORES.UK;
+  }
+  return process.env.TESCO_LANGUAGE ? { ...store, language: process.env.TESCO_LANGUAGE } : store;
+}
+
+export const STORE = resolveStore();
 
 // ─── Mutable Auth State ──────────────────────────────────────────────────────
 
@@ -51,6 +84,7 @@ function parseEnv(content: string): Record<string, string> {
  */
 export function loadCredentialsFromEnv(): void {
   console.error(`[tesco] Config: ${ENV_PATH}`);
+  console.error(`[tesco] Store: ${STORE.region} (${STORE.origin}, ${STORE.language}, prices in ${STORE.currency})`);
   if (!existsSync(ENV_PATH)) {
     console.error("[tesco] No .env file found — server starting without credentials");
     return;
@@ -180,10 +214,10 @@ export async function sendOperations(
     "Content-Type": "application/json",
     Accept: "application/json",
     "x-apikey": API_KEY,
-    Origin: "https://www.tesco.com",
-    Referer: "https://www.tesco.com/groceries/",
-    language: "en-GB",
-    region: "UK",
+    Origin: STORE.origin,
+    Referer: `${STORE.origin}/groceries/`,
+    language: STORE.language,
+    region: STORE.region,
     "User-Agent":
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
   };
