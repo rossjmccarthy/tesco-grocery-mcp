@@ -28,21 +28,24 @@ const API_KEY = "TvOSZJHlEk0pjniDGQFAc9Q59WGAR4dA";
 // ─── Store (region) ──────────────────────────────────────────────────────────
 
 /**
- * Which Tesco storefront to talk to. The same gateway serves both, selected
- * by the region/language headers and the site origin. The IE values are not
- * yet confirmed against tesco.ie traffic; TESCO_LANGUAGE overrides the
- * language if Tesco Ireland turns out to use a different one.
+ * Which Tesco storefront to talk to. Both use the same xapi.tesco.com gateway
+ * and API key (confirmed from tesco.ie page config, Nov 2026), selected by the
+ * region/language headers and the site origin. Tesco Ireland's shop lives
+ * under /shop/en-IE/ rather than /groceries/. TESCO_LANGUAGE overrides the
+ * language if needed.
  */
 interface Store {
   region: "UK" | "IE";
   origin: string;
+  /** Path of the shop on the site, used as the Referer. */
+  shopPath: string;
   language: string;
   currency: "GBP" | "EUR";
 }
 
 const STORES: Record<Store["region"], Store> = {
-  UK: { region: "UK", origin: "https://www.tesco.com", language: "en-GB", currency: "GBP" },
-  IE: { region: "IE", origin: "https://www.tesco.ie", language: "en-IE", currency: "EUR" },
+  UK: { region: "UK", origin: "https://www.tesco.com", shopPath: "/groceries/", language: "en-GB", currency: "GBP" },
+  IE: { region: "IE", origin: "https://www.tesco.ie", shopPath: "/shop/en-IE/", language: "en-IE", currency: "EUR" },
 };
 
 function resolveStore(): Store {
@@ -215,7 +218,7 @@ export async function sendOperations(
     Accept: "application/json",
     "x-apikey": API_KEY,
     Origin: STORE.origin,
-    Referer: `${STORE.origin}/groceries/`,
+    Referer: `${STORE.origin}${STORE.shopPath}`,
     language: STORE.language,
     region: STORE.region,
     "User-Agent":

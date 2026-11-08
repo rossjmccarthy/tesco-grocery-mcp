@@ -22,7 +22,7 @@ const product = (id, title, price, unitPrice = price, unitOfMeasure = "each") =>
 
 // ─── Store setting ───────────────────────────────────────────────────────────
 
-for (const [region, origin, language] of [["UK", "https://www.tesco.com", "en-GB"], ["IE", "https://www.tesco.ie", "en-IE"]]) {
+for (const [region, origin, language, shopPath] of [["UK", "https://www.tesco.com", "en-GB", "/groceries/"], ["IE", "https://www.tesco.ie", "en-IE", "/shop/en-IE/"]]) {
   const fake = await fakeTesco({ Search: () => ({ search: { results: [product("1", "Milk", 1.2)], pageInformation: { totalCount: 1 } } }) });
   const srv = await mcpServer({ TESCO_API_URL: fake.url, ...(region === "UK" ? {} : { TESCO_REGION: region }) });
   const r = await srv.call("search_products", { queries: [{ query: "milk" }] });
@@ -33,7 +33,7 @@ for (const [region, origin, language] of [["UK", "https://www.tesco.com", "en-GB
     const h = fake.calls[0].headers;
     assert.equal(h.region, region);
     assert.equal(h.origin, origin);
-    assert.equal(h.referer, `${origin}/groceries/`);
+    assert.equal(h.referer, `${origin}${shopPath}`);
     assert.equal(h.language, language);
   });
 }
