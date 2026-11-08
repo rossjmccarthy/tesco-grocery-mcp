@@ -5,7 +5,7 @@ import { TescoError, type GraphQLOperation, type GraphQLResponse } from "./types
 
 // ─── Config Directory Resolution ────────────────────────────────────────────
 
-function getConfigDir(): string {
+export function getConfigDir(): string {
   const appName = "tesco-grocery-mcp";
   if (process.platform === "win32") {
     return join(process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"), appName);
